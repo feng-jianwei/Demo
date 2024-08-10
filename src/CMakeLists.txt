@@ -1,0 +1,5 @@
+add_subdirectory(dao)
+add_subdirectory(log)
+add_subdirectory(tpool)
+add_subdirectory(event)
+add_subdirectory(service)

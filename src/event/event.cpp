@@ -1,0 +1,92 @@
+#include "event.h"
+#include <functional>
+#include <iostream>
+#include <shared_mutex>
+#include <unistd.h>
+#include <mutex>
+#include <fcntl.h>
+#include "tpool/tpool.h"
+
+namespace EVENT
+{
+    constexpr int MAX_EVENTS = 64;
+    constexpr int TIMEOUT = 5;
+    EventCtl::EventCtl()
+    {
+        epfd = epoll_create1(0);
+        if (epfd == -1) {
+            std::cerr << "Failed to create epoll file descriptor\n";
+            throw std::runtime_error("Failed to create epoll file descriptor");
+        }
+        std::function<void()> poll = [&]() {
+            struct epoll_event events[MAX_EVENTS];
+            int nfds = epoll_wait(epfd, events, MAX_EVENTS, TIMEOUT);
+            if (nfds == -1) {
+                perror("epoll_wait");
+                exit(EXIT_FAILURE);
+            }
+            for (int i = 0; i < nfds; ++i) {
+                if (events[i].events & EPOLLIN) {
+                    // 读取数据
+                    std::shared_lock<std::shared_mutex> lock(mtx);
+                    auto iter = fdToHandler.find(events[i].data.fd);
+                    if (iter == fdToHandler.end()) {
+                        char buf[1024];
+                        read(events[i].data.fd, buf, sizeof(buf));
+                        continue;
+                    }
+                    iter->second(events[i].data.fd, events[i]);
+                }
+            }
+            TPOOL::AsyncTask(poll);
+        };
+        TPOOL::AsyncTask(poll);
+    }
+
+    EventCtl::~EventCtl()
+    {
+        if (epfd != -1) {
+            close(epfd);
+        }
+    }
+
+    Result<void> EventCtl::AddEvent(int fd, epoll_event &evt, handler && handler)
+    {
+        int flags = fcntl(fd, F_GETFL, 0);
+        if (flags == -1) {
+            return false;
+        }
+        flags |= O_NONBLOCK;
+        if (fcntl(fd, F_SETFL, flags) == -1) {
+            return false;
+        }
+        std::unique_lock<std::shared_mutex> lock(mtx);
+        fdToHandler[fd] = std::move(handler);
+        if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &evt) == -1)
+        {
+            fdToHandler.erase(fd);
+            return false;
+        }
+        return {};
+    }
+
+    Result<void> EventCtl::ModEvent(int fd, epoll_event &evt)
+    {
+        if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &evt) == -1)
+        {
+            return false;
+        }
+        return {};
+    }
+
+    Result<void> EventCtl::DelEvent(int fd)
+    {
+        if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr) == -1)
+        {
+            return false;
+        }
+        std::unique_lock<std::shared_mutex> lock(mtx);
+        fdToHandler.erase(fd);
+        return {};
+    }
+} // namespace EVENT
