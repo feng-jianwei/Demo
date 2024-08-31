@@ -12,14 +12,15 @@ class PostGresConn : public DBConnection {
     public:
         PostGresConn(std::string connInfo);
         PostGresConn(PostGresConn &&connection);
-        ~PostGresConn() = default;
+        ~PostGresConn();
         bool IsOk() override;
         void ReConnect() override;
         Result<std::unique_ptr<Table>> ExecuteAnySql(std::string sql) override;
+        Result<std::unique_ptr<Table>> ExecuteEvent(std::vector<std::string> sqls) override;
     private:
         class Impl;
-        std::unique_ptr<Impl> conn {nullptr};
-        std::string connInfo;
+        Impl* m_conn {nullptr};
+        std::string m_connInfo;
 };
 
 

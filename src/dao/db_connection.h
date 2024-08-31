@@ -14,6 +14,7 @@ class DBConnection {
         virtual bool IsOk() = 0;
         virtual void ReConnect() = 0;
         virtual Result<std::unique_ptr<Table>> ExecuteAnySql(std::string sql) = 0;
+        virtual Result<std::unique_ptr<Table>> ExecuteEvent(std::vector<std::string> sqls) = 0;
 };
 
 

@@ -46,25 +46,31 @@ class PostGresConn::Impl {
 };
 
 PostGresConn::PostGresConn(std::string connInfo): 
-    conn(std::make_unique<Impl>(PQconnectdb(connInfo.c_str()))), connInfo(connInfo) {}
+    m_connInfo(std::move(connInfo)) {
+        m_conn = new Impl(PQconnectdb(m_connInfo.c_str()));
+    }
 
 PostGresConn::PostGresConn(PostGresConn &&connection) {
-    conn = std::move(connection.conn);
-    connection.conn = nullptr;
+    m_conn = connection.m_conn;
+    connection.m_conn = nullptr;
 }
 
 bool PostGresConn::IsOk() {
-    if (conn == nullptr) {
+    if (m_conn == nullptr) {
         return false;
     }
-    return PQstatus(conn->GetConn()) == CONNECTION_OK;
+    if (PQstatus(m_conn->GetConn()) != CONNECTION_OK) {
+        std::cout << "Connection to database failed: " << PQerrorMessage(m_conn->GetConn()) << std::endl;
+        return false;
+    }
+    return true;
 }
 
 void PostGresConn::ReConnect() {
-    if (conn != nullptr) {
-        conn.reset();
+    if (m_conn != nullptr) {
+        delete m_conn;
     }
-    conn = std::make_unique<Impl>(PQconnectdb(connInfo.c_str()));
+    m_conn = new Impl(PQconnectdb(m_connInfo.c_str()));
 }
 
 Result<std::unique_ptr<Table>> PostGresConn::ExecuteAnySql(std::string sql) {
@@ -72,12 +78,38 @@ Result<std::unique_ptr<Table>> PostGresConn::ExecuteAnySql(std::string sql) {
         std::cerr << "Connection is not established" << std::endl;
         return false;
     }
-
-    PGresult *res = PQexec(conn->GetConn(), sql.c_str());
+    cout << "Executing SQL: " << sql << endl;
+    PGresult *res = PQexec(m_conn->GetConn(), sql.c_str());
     auto result = PQresultStatus(res);
     if (result != PGRES_TUPLES_OK && result != PGRES_COMMAND_OK) {
-        std::cerr << "execution failed: " << PQerrorMessage(conn->GetConn()) << std::endl;
+        std::cout << "execution failed: " << PQerrorMessage(m_conn->GetConn()) << std::endl;
         return false;
     }
     return new PostGreSQLResult(res);
+}
+
+PostGresConn::~PostGresConn() {
+    if (m_conn != nullptr) {
+        delete m_conn;
+    }
+    m_conn = nullptr;
+}
+
+Result<std::unique_ptr<Table>> PostGresConn::ExecuteEvent(std::vector<std::string> sqls) {
+    auto res = ExecuteAnySql("BEGIN;");
+    if (!res.IsSuccess()) {
+        return res;
+    }
+    for (auto &&sql : sqls) {
+        res = ExecuteAnySql(std::move(sql));
+        if (!res.IsSuccess()) {
+            res = ExecuteAnySql("ROLLBACK;");
+            return res;
+        }
+    }
+    res = ExecuteAnySql("COMMIT;");
+    if (!res.IsSuccess()) {
+        return res;
+    }
+    return res;
 }

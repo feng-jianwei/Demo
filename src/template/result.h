@@ -7,14 +7,22 @@ class Result {
     public:
         Result() = default;
         Result(bool isSuccess): isSuccess(isSuccess) {}
-        Result(T &&result): result(std::forward<T>(result)) {}
+        Result(Result &&other_result): result(std::move(other_result.result)), isSuccess(other_result.isSuccess) {}
+        Result& operator=(Result&& other) noexcept {
+            if (this != &other) {
+                result = std::move(other.result);
+                isSuccess = other.isSuccess;
+            }
+            return *this;
+        }
         ~Result() = default;
-        T GetReult() {
+        T& GetReult() {
             return result;
         }
         bool IsSuccess() {
             return isSuccess;
         }
+    private:
         T result {};
         bool isSuccess {true};
 };
