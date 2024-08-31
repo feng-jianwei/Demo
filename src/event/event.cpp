@@ -13,7 +13,7 @@ namespace EVENT
     constexpr int TIMEOUT = 5;
     EventCtl::EventCtl()
     {
-        epfd = epoll_create1(0);
+        epfd = epoll_create1(FD_CLOEXEC);
         if (epfd == -1) {
             std::cerr << "Failed to create epoll file descriptor\n";
             throw std::runtime_error("Failed to create epoll file descriptor");
@@ -62,8 +62,7 @@ namespace EVENT
         }
         std::unique_lock<std::shared_mutex> lock(mtx);
         fdToHandler[fd] = std::move(handler);
-        if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &evt) == -1)
-        {
+        if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &evt) == -1) {
             fdToHandler.erase(fd);
             return false;
         }
@@ -72,8 +71,7 @@ namespace EVENT
 
     Result<void> EventCtl::ModEvent(int fd, epoll_event &evt)
     {
-        if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &evt) == -1)
-        {
+        if (epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &evt) == -1) {
             return false;
         }
         return {};
@@ -81,8 +79,7 @@ namespace EVENT
 
     Result<void> EventCtl::DelEvent(int fd)
     {
-        if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr) == -1)
-        {
+        if (epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr) == -1) {
             return false;
         }
         std::unique_lock<std::shared_mutex> lock(mtx);
