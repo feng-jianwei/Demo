@@ -11,12 +11,13 @@ namespace EVENT
     using handler = std::function<void(int, const epoll_event &)>;
     class EventCtl {
         public:
-            EventCtl();
-            ~EventCtl();
+            static EventCtl &GetInstance();
             Result<void> AddEvent(int fd, epoll_event &evt, handler &&handler);
             Result<void> ModEvent(int fd, epoll_event &evt);
             Result<void> DelEvent(int fd);
         private:
+            EventCtl();
+            ~EventCtl();
             std::shared_mutex mtx;
             std::unordered_map<int, handler> fdToHandler;
             int epfd {-1};

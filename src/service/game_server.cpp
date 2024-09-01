@@ -1,12 +1,18 @@
+#include <cstdio>
 #include <initializer_list>
 #include <iostream>
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
 #include <type_traits>
 #include "dao/postgres_conn.h"
 #include "CivetServer.h"
+#include <atomic>
+#include "service_ctl.h"
+
 using namespace std;
 class MyHandler : public CivetHandler {
 public:
-    bool handleGet(CivetServer *server, struct mg_connection *conn) override {
+    bool handleGet([[maybe_unused]] CivetServer *server, struct mg_connection *conn) override {
         // 发送 HTTP 响应头
         mg_printf(conn,
                   "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n");
@@ -19,11 +25,10 @@ public:
 bool Init_Service();
 
 int main() {
+    Init_Service();
     const char *options[] = {
         "document_root", ".",        // 文档根目录
-        "listening_ports", "8080r,8443s",        // 监听端口 (8080 for HTTP, 8443 for HTTPS)
-        "ssl_certificate", "config/combined.pem",           // SSL 证书文件路径
-        "ssl_verify_peer", "0",
+        "listening_ports", "8080",
         NULL
     };
 
@@ -34,12 +39,9 @@ int main() {
     MyHandler handler;
     server.addHandler("/hello", handler);
 
-
-
     // 等待服务器终止 (Ctrl+C)
-    while (true) {
-        // 保持服务器运行
-    }
-
+    ServiceCtl::RegistSignal();
+    ServiceCtl::WaitExit();
+    printf("Exit...\n");
     return 0;
 }

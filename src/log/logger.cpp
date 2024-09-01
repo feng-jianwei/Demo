@@ -57,7 +57,7 @@ std::vector<std::string> Logger::GetLogs() {
     cond.wait(guard);
   }
   logs.swap(tmp);
-  return move(tmp);
+  return tmp;
 }
 
 bool Logger::CheckLogFileSize() {

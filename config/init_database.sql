@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     passwd NUMERIC NOT NULL
     );
 
-CREATE TABLE login_records (
+CREATE TABLE IF NOT EXISTS login_records (
     record_id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     login_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
