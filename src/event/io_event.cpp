@@ -78,11 +78,10 @@ namespace EVENT
             return false;
         }
         std::unique_lock<std::shared_mutex> lock(mtx);
-        fdToHandler[fd] = std::move(handler);
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &evt) == -1) {
-            fdToHandler.erase(fd);
             return false;
         }
+        fdToHandler[fd] = std::move(handler);
         printf("AddEvent fd: %d\n", fd);
         return {};
     }
