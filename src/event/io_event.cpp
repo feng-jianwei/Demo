@@ -45,14 +45,18 @@ namespace EVENT
                 printf("events[%d].events: %d\n", i, events[i].events);
                 if (events[i].events & EPOLLIN) {
                     // 读取数据
-                    std::shared_lock<std::shared_mutex> lock(mtx);
-                    auto iter = fdToHandler.find(events[i].data.fd);
-                    if (iter == fdToHandler.end()) {
-                        char buf[1024];
-                        while(read(events[i].data.fd, buf, sizeof(buf)) > 0) {};
-                        continue;
+                    std::shared_ptr<Handler> handler;
+                    {
+                        std::shared_lock<std::shared_mutex> lock(mtx);
+                        auto iter = fdToHandler.find(events[i].data.fd);
+                        if (iter == fdToHandler.end()) {
+                            char buf[1024];
+                            while(read(events[i].data.fd, buf, sizeof(buf)) > 0) {};
+                            continue;
+                        }
+                        handler = iter->second;
                     }
-                    iter->second(events[i].data.fd, events[i]);
+                    (*handler)(events[i].data.fd, events[i]);
                 }
             }
             TPOOL::AsyncTask(*func);
@@ -67,7 +71,7 @@ namespace EVENT
         }
     }
 
-    Result<void> EventCtl::AddEvent(int fd, epoll_event &evt, handler && handler)
+    Result<void> EventCtl::AddEvent(int fd, epoll_event &evt, Handler && handler)
     {
         int flags = fcntl(fd, F_GETFL, 0);
         if (flags == -1) {
@@ -77,11 +81,11 @@ namespace EVENT
         if (fcntl(fd, F_SETFL, flags) == -1) {
             return false;
         }
-        std::unique_lock<std::shared_mutex> lock(mtx);
         if (epoll_ctl(epfd, EPOLL_CTL_ADD, fd, &evt) == -1) {
             return false;
         }
-        fdToHandler[fd] = std::move(handler);
+        std::unique_lock<std::shared_mutex> lock(mtx);
+        fdToHandler[fd] = std::make_shared<Handler>(std::move(handler));
         printf("AddEvent fd: %d\n", fd);
         return {};
     }

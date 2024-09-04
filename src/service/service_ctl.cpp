@@ -26,7 +26,7 @@ void ServiceCtl::RegistSignal()
     epoll_event evt{};
     evt.events = EPOLLIN;
     evt.data.fd = fd;
-    EVENT::handler handler = [](int fd, [[maybe_unused]]const epoll_event &evt) {
+    EVENT::Handler handler = [](int fd, [[maybe_unused]]const epoll_event &evt) {
         if (fd != ServiceCtl::fd) {
             return;
         }

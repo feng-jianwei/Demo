@@ -6,11 +6,11 @@
 #include <unordered_map>
 
 class TimerMgr {
-  using handler = std::function<void()>;
+  using Handler = std::function<void()>;
 
 public:
   static TimerMgr &GetInstance();
-  int AddTimer(handler &&cb, std::chrono::seconds duration,
+  int AddTimer(Handler &&cb, std::chrono::seconds duration,
                std::chrono::seconds interval = std::chrono::seconds(0));
   void DelTimer(int timerId);
 
@@ -18,7 +18,7 @@ private:
   TimerMgr() = default;
   ~TimerMgr() = default;
   std::shared_mutex mtx;
-  std::unordered_map<int, handler> timerIdToHandler;
+  std::unordered_map<int, Handler> timerIdToHandler;
 };
 
 #endif // __TIMER_MGR_H__

@@ -14,7 +14,7 @@ TimerMgr &TimerMgr::GetInstance()
   return instance;
 }
 
-int TimerMgr::AddTimer(handler &&cb, std::chrono::seconds duration,
+int TimerMgr::AddTimer(Handler &&cb, std::chrono::seconds duration,
                        std::chrono::seconds interval) 
 {
     int timerId = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
@@ -38,7 +38,7 @@ int TimerMgr::AddTimer(handler &&cb, std::chrono::seconds duration,
     epoll_event evt{};
     evt.events = EPOLLIN | EPOLLET;
     evt.data.fd = timerId;
-    EVENT::handler handler = [this](int fd, [[maybe_unused]]const epoll_event &evt) {
+    EVENT::Handler handler = [this](int fd, [[maybe_unused]]const epoll_event &evt) {
         uint64_t exp;
         auto ret = read(fd, &exp, sizeof(exp));
         if (ret == -1) {
@@ -66,6 +66,7 @@ void TimerMgr::DelTimer(int timerId)
 {
     std::unique_lock lock(mtx);
     timerIdToHandler.erase(timerId);
+    EVENT::EventCtl::GetInstance().DelEvent(timerId);
     auto ret = close(timerId);
     if (ret == -1) {
         perror(std::string("close, " + std::string(strerror(errno))).c_str());
