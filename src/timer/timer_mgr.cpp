@@ -1,21 +1,22 @@
-#include "timer_mgr.h"
-#include "event/io_event.h"
-#include <cerrno>
-#include <cstring>
-#include <shared_mutex>
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
 #include <unistd.h>
+
+#include <cerrno>
+#include <cstring>
+#include <shared_mutex>
+
+#include "event/io_event.h"
+#include "timer_mgr.h"
 #include "tpool/tpool.h"
 
-TimerMgr &TimerMgr::GetInstance() 
+TimerMgr& TimerMgr::GetInstance()
 {
-  static TimerMgr instance;
-  return instance;
+    static TimerMgr instance;
+    return instance;
 }
 
-int TimerMgr::AddTimer(Handler &&cb, std::chrono::seconds duration,
-                       std::chrono::seconds interval) 
+int TimerMgr::AddTimer(Handler&& cb, std::chrono::seconds duration, std::chrono::seconds interval)
 {
     int timerId = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
     struct itimerspec timer {};
@@ -30,7 +31,7 @@ int TimerMgr::AddTimer(Handler &&cb, std::chrono::seconds duration,
         timer.it_interval.tv_sec = interval.count();
         timer.it_interval.tv_nsec = 0;
     }
-    auto ret =timerfd_settime(timerId, 0, &timer, nullptr);
+    auto ret = timerfd_settime(timerId, 0, &timer, nullptr);
     if (ret == -1) {
         perror("timerfd_settime");
         return -1;
@@ -38,7 +39,7 @@ int TimerMgr::AddTimer(Handler &&cb, std::chrono::seconds duration,
     epoll_event evt{};
     evt.events = EPOLLIN | EPOLLET;
     evt.data.fd = timerId;
-    EVENT::Handler handler = [this](int fd, [[maybe_unused]]const epoll_event &evt) {
+    EVENT::Handler handler = [this](int fd, [[maybe_unused]] const epoll_event& evt) {
         uint64_t exp;
         auto ret = read(fd, &exp, sizeof(exp));
         if (ret == -1) {
@@ -62,7 +63,7 @@ int TimerMgr::AddTimer(Handler &&cb, std::chrono::seconds duration,
     return timerId;
 }
 
-void TimerMgr::DelTimer(int timerId) 
+void TimerMgr::DelTimer(int timerId)
 {
     std::unique_lock lock(mtx);
     timerIdToHandler.erase(timerId);

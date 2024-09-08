@@ -43,21 +43,19 @@ namespace EVENT
             for (int i = 0; i < nfds; ++i) {
                 printf("events[%d].data.fd: %d\n", i, events[i].data.fd);
                 printf("events[%d].events: %d\n", i, events[i].events);
-                if (events[i].events & EPOLLIN) {
                     // 读取数据
-                    std::shared_ptr<Handler> handler;
-                    {
-                        std::shared_lock<std::shared_mutex> lock(mtx);
-                        auto iter = fdToHandler.find(events[i].data.fd);
-                        if (iter == fdToHandler.end()) {
-                            char buf[1024];
-                            while(read(events[i].data.fd, buf, sizeof(buf)) > 0) {};
-                            continue;
-                        }
-                        handler = iter->second;
+                std::shared_ptr<Handler> handler;
+                {
+                    std::shared_lock<std::shared_mutex> lock(mtx);
+                    auto iter = fdToHandler.find(events[i].data.fd);
+                    if (iter == fdToHandler.end()) {
+                        char buf[1024];
+                        while(read(events[i].data.fd, buf, sizeof(buf)) > 0) {};
+                        continue;
                     }
-                    (*handler)(events[i].data.fd, events[i]);
+                    handler = iter->second;
                 }
+                (*handler)(events[i].data.fd, events[i]);
             }
             TPOOL::AsyncTask(*func);
         };

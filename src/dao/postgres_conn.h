@@ -16,7 +16,7 @@ class PostGresConn : public DBConnection {
         bool IsOk() override;
         void ReConnect() override;
         Result<std::unique_ptr<Table>> ExecuteAnySql(std::string sql) override;
-        Result<std::unique_ptr<Table>> ExecuteEvent(std::vector<std::string> sqls) override;
+        Result<void> ExecuteEvent(std::vector<std::string> sqls) override;
     private:
         class Impl;
         Impl* m_conn {nullptr};

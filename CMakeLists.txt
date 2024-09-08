@@ -25,11 +25,20 @@ FetchContent_Declare(
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/civetweb
 )
 
+FetchContent_Declare(
+  curl
+  GIT_REPOSITORY https://github.com/curl/curl.git
+  GIT_TAG curl-8_9_1 # 可以指定分支、标签或提交哈希
+  SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/curl
+)
+
 # 手动下载项目而不添加到构建系统中
 FetchContent_Populate(civetweb)
+FetchContent_Populate(curl)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/civetweb/include)
 
 include_directories(src)
 include_directories(include)
 add_subdirectory(src)
 add_subdirectory(third_party/civetweb)
+add_subdirectory(third_party/curl)

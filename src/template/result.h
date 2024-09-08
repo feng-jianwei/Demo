@@ -3,11 +3,14 @@
 
 #include <utility>
 template <typename T>
+class Result;
+
+template <typename T>
 class Result {
     public:
         Result() = default;
         Result(bool isSuccess): isSuccess(isSuccess) {}
-        Result(Result &&other_result): result(std::move(other_result.result)), isSuccess(other_result.isSuccess) {}
+        Result(T &&other_result): result(std::move(other_result)), isSuccess(true) {}
         Result& operator=(Result&& other) noexcept {
             if (this != &other) {
                 result = std::move(other.result);

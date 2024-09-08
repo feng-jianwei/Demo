@@ -5,6 +5,7 @@
 #include <string>
 #include <libpq-fe.h>
 #include <iostream>
+#include <type_traits>
 
 using namespace std;
 
@@ -95,21 +96,21 @@ PostGresConn::~PostGresConn() {
     m_conn = nullptr;
 }
 
-Result<std::unique_ptr<Table>> PostGresConn::ExecuteEvent(std::vector<std::string> sqls) {
+Result<void> PostGresConn::ExecuteEvent(std::vector<std::string> sqls) {
     auto res = ExecuteAnySql("BEGIN;");
     if (!res.IsSuccess()) {
-        return res;
+        return false;
     }
     for (auto &&sql : sqls) {
         res = ExecuteAnySql(std::move(sql));
         if (!res.IsSuccess()) {
             res = ExecuteAnySql("ROLLBACK;");
-            return res;
+            return false;
         }
     }
     res = ExecuteAnySql("COMMIT;");
     if (!res.IsSuccess()) {
-        return res;
+        return false;
     }
-    return res;
+    return true;
 }
