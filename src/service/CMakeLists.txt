@@ -1,8 +1,8 @@
 file(GLOB SOURCE_FILES "*.cpp")
-add_executable(game_server ${SOURCE_FILES})
+add_executable(demo_server ${SOURCE_FILES})
 
-target_link_libraries(game_server PRIVATE 
-    game_db
-    game_utils
+target_link_libraries(demo_server PRIVATE 
+    demo_db
+    demo_utils
     civetweb-cpp
-    game_event)
+    demo_event)

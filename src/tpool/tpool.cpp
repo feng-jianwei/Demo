@@ -41,10 +41,10 @@ void Tpool::AddThread(int num) {
         while (!isExit) {
             std::unique_lock<mutex> lock(tasksMutex);
             while (tasks.empty()) {
-            if (isExit) {
-                return;
-            }
-            cond.wait(lock);
+                if (isExit) {
+                    return;
+                }
+                cond.wait(lock);
             }
             auto task = std::move(tasks.front());
             tasks.pop();
