@@ -21,7 +21,7 @@ include(FetchContent)
 FetchContent_Declare(
   civetweb
   GIT_REPOSITORY https://github.com/civetweb/civetweb.git
-  GIT_TAG v1.16  # 可以指定分支、标签或提交哈希
+  GIT_TAG master # 可以指定分支、标签或提交哈希（civetweb一直有维护但更新tag）
   SOURCE_DIR ${PROJECT_SOURCE_DIR}/third_party/civetweb
 )
 
