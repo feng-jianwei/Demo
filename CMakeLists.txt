@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(GameServer)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# 设置模块路径
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 # 设置 C++ 标准
 set(CMAKE_CXX_STANDARD 20)
